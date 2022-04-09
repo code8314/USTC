@@ -1,0 +1,190 @@
+# DB_HW5
+
+PB19111713钟颖康
+
+
+
+### Q1：简述事务的性质。
+
+**A1：**
+
+- 原子性
+- 一致性
+- 隔离性
+- 持久性
+
+
+
+### Q2：给定关系Student(sno,sname,age,status)。假设所有元组的年龄信息都没有空值，请不要使用聚集函数COUNT、AVG和SUM，自定义一个计算并返回平均年龄的函数aveAge()。
+
+**A2：**
+
+```sql
+Create procedure avgAge(out avg INT)
+BEGIN
+	DECLARE count INT default 0;
+	DECLARE sum INT default 0;
+	DECLARE s INT default 0;
+	DECLARE tmp INT default 0;
+	DECLARE StuAge cursor for
+		SELECT age FROM Student;
+	DECLARE continue Handler for NOT FOUND set s = 1;
+	
+	OPEN StuAge;
+	REPEAT
+		FETCH StuAge INTO tmp;
+		IF state = 0 THEN
+			sum = sum + tmp;
+			count = count + 1;
+		END IF;
+		until s = 1
+	end REPEAT;
+	CLOSE StuAge;
+	avg = sum / count;
+END;
+```
+
+
+
+### Q3：考虑课件第47页所定义的触发器，假设student关系中仅包含两个元组：('001','John',20,'合格')和('002','Mike',22,'合格‘)，并且SC关系一开始为空。现在依次插入下列元组，请问插入哪个元组后，student会被自动更新？
+
+```
+a)	('001','c1',74)
+b)	('002','c1',45)
+c)	('001','c2',55)
+d)	('002','c2',58)
+e)	('001','c3',88)
+f)	('002','c3',37)
+g)	('001','c4',43)
+h)	('001','c5',29)
+```
+
+**A3：**
+
+插入第6列元组后，Mike变为不合格，student自动更新；插入第8列元组后，John变为不合格，student自动更新。
+
+
+
+### Q4：请完成课件第49页的触发器实例程序。
+
+**A4：**
+
+```sql
+CREAT trigger after_delete
+AFTER DELETE ON sc
+FOR EACH ROW
+BEGIN
+	DECLARE course_count INT;
+	SELECT count(cno) FROM sc
+		WHERE sno = new.sno AND score < 60 INTO course_count;
+		
+	IF course_count >=3 THEN
+		UPDATE student SET Status = '不合格'
+			WHERE sno = new.sno
+	ELSE
+		UPDATE student SET Status = '合格'
+			WHERE sno = new.sno
+	END IF;
+END;
+```
+
+
+
+
+
+
+
+
+
+# DB_HW6
+
+PB19111713钟颖康
+
+
+
+### Q1：假设$\rho$是模式R(A,B,C,D,E)，$\rho$={R1(A,B,C),R2(A,D,E)}，并且R的FD集为：F={A$\rightarrow$BC,CD$\rightarrow$E,B$\rightarrow$D,E$\rightarrow$A}，请证明$\rho$是R的无损分解。
+
+**A1：**
+
+根据题意，$R1\cap R2=\{A\}，R1-R2=\{B,C\}$
+
+根据Q3可知$A\rightarrow ABCDE$
+
+故$(R1\cap R2)\rightarrow (R1-R2)$，$\rho$是R的无损分解。
+
+
+
+### Q2：请使用Armstrong公式证明合并律。
+
+**A2：**
+
+不妨设已知$A\rightarrow B,A\rightarrow C$，欲证$A\rightarrow BC$。证明如下：	
+$$
+\begin{aligned}
+& \because A\rightarrow B & \\
+& \therefore AA\rightarrow AB & (增广律)\\
+& \therefore A\rightarrow AB & \\
+& \because A\rightarrow C & \\
+& \therefore AB\rightarrow BC & (增广律)\\
+& \therefore A\rightarrow BC & (传递律)\\
+\end{aligned}
+$$
+
+
+### Q3：请计算Q1中模式R中属性集的闭包：$A^+,B^+,C^+,D^+,E^+,{CD}^+$
+
+**A3：**
+$$
+\begin{aligned}
+\because & A\rightarrow BC & \\
+\therefore & A\rightarrow B,A\rightarrow C & (分解律)\\
+\because & A\rightarrow B,B\rightarrow D & \\
+\therefore & A\rightarrow D & (传递律)\\
+\because & A\rightarrow C,A\rightarrow D,CD\rightarrow E & \\
+\therefore & A\rightarrow E & (合并律，传递律)\\
+\because & A\rightarrow A & (自含律)\\
+\therefore & A\rightarrow ABCDE & (合并律)\\
+\because & E\rightarrow A & \\
+\therefore & E\rightarrow ABCDE & (传递律)\\
+\because & CD\rightarrow E & \\
+\therefore & CD\rightarrow ABCDE & (传递律)\\
+\end{aligned}
+$$
+故$A^+=\{ABCDE\},B^+=\{BD\},C^+=\{C\},D^+=\{D\},E^+=\{ABCDE\},CD^+=\{ABCDE\},$
+
+### Q4：请给出Q1中模式R的候选码。
+
+**A4：**
+
+结合Q3有
+$$
+\begin{aligned}
+\because & B\rightarrow D & \\
+\therefore & BC\rightarrow CD & (增广律)\\
+\therefore & BC\rightarrow ABCDE & (传递律)\\
+\end{aligned}
+$$
+易知候选码为$A,BC,CD,E$。
+
+
+
+### Q5：Q1中的分解是否保持函数依赖？请证明。
+
+**A5：**
+
+- 不保持函数依赖。
+- 显然$\pi_{R_1}(F)=\{A\rightarrow BC\},\pi_{R_2}(F)=\{E\rightarrow A\},(\bigcup_{i=1}^2{\pi_{R_i}})^+\neq F^+$
+
+
+
+### Q6：请给出Q1中模式R的一个无损并保持函数依赖的3NF分解。
+
+**A6：**
+
+$\rho_{3NF}=\{(A,B,C),(C,D,E),(B,D),(E,A)\}$
+
+### Q7：请给出Q1中模式R的一个无损的BCNF分解。
+
+**A7：**
+
+$\rho_{BCNF}=\{(A,B,C,E),(B,D)\}$
